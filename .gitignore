@@ -45,3 +45,9 @@ reports/generated/
 # Operating system files
 .DS_Store
 Thumbs.db
+
+# Local application databases
+apps/backend/data/*.db
+apps/backend/data/*.db-journal
+apps/backend/data/*.db-wal
+apps/backend/data/*.db-shm
