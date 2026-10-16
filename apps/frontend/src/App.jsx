@@ -5,19 +5,49 @@ const API_BASE = (import.meta.env.VITE_API_BASE_URL || '').replace(/\/$/, '');
 const API_PREFIX = `${API_BASE}/api/v1`;
 
 const sampleMachines = [
-  { machine_id: 'CNC-04', name: 'CNC Milling Cell 04', area: 'Machining · Line A', health_score: 96, condition: 'healthy', open_alerts: 0, latest_reading: { process_temperature: 309.8, air_temperature: 298.4, rotational_speed: 1840, torque: 42.6, tool_wear: 108 } },
-  { machine_id: 'LATHE-02', name: 'Precision Lathe 02', area: 'Machining · Line A', health_score: 82, condition: 'attention_required', open_alerts: 1, latest_reading: { process_temperature: 316.2, air_temperature: 300.1, rotational_speed: 1520, torque: 57.8, tool_wear: 192 } },
-  { machine_id: 'PRESS-01', name: 'Hydraulic Press 01', area: 'Forming · Line B', health_score: 68, condition: 'attention_required', open_alerts: 2, latest_reading: { process_temperature: 313.6, air_temperature: 299.6, rotational_speed: 1190, torque: 62.4, tool_wear: 226 } },
-  { machine_id: 'MILL-07', name: 'Vertical Mill 07', area: 'Machining · Line C', health_score: 43, condition: 'critical', open_alerts: 3, latest_reading: { process_temperature: 324.1, air_temperature: 302.0, rotational_speed: 2470, torque: 73.2, tool_wear: 261 } },
+  {
+    machine_id: 'CNC-MILL-001',
+    name: 'CNC Milling Cell 01',
+    area: 'Machining · Line A',
+    health_score: 100,
+    condition: 'healthy',
+    open_alerts: 0,
+    latest_reading: { process_temperature: 308.2, air_temperature: 298.5, rotational_speed: 1500, torque: 42.3, tool_wear: 100 },
+  },
+  {
+    machine_id: 'PRECISION-LATHE-001',
+    name: 'Precision Lathe 01',
+    area: 'Machining · Line A',
+    health_score: 61,
+    condition: 'attention_required',
+    open_alerts: 3,
+    latest_reading: { process_temperature: 316.2, air_temperature: 298.5, rotational_speed: 1520, torque: 62, tool_wear: 225 },
+  },
+  {
+    machine_id: 'HYDRAULIC-PRESS-001',
+    name: 'Hydraulic Press 01',
+    area: 'Forming · Line B',
+    health_score: 10,
+    condition: 'critical',
+    open_alerts: 4,
+    latest_reading: { process_temperature: 325, air_temperature: 300, rotational_speed: 1100, torque: 72, tool_wear: 260 },
+  },
 ];
 
 const sampleAlerts = [
-  { id: 'preview-1', machine_id: 'MILL-07', severity: 'critical', title: 'Process temperature above threshold', message: 'The latest process temperature is 324.1 K. Inspect cooling and cutting conditions.', status: 'open', created_at: new Date(Date.now() - 6 * 60 * 1000).toISOString() },
-  { id: 'preview-2', machine_id: 'PRESS-01', severity: 'warning', title: 'Torque trending high', message: 'Torque is approaching the configured warning limit. Review load and tooling.', status: 'open', created_at: new Date(Date.now() - 24 * 60 * 1000).toISOString() },
-  { id: 'preview-3', machine_id: 'LATHE-02', severity: 'warning', title: 'Tool wear needs attention', message: 'Tool wear is elevated. Plan an inspection at the next safe opportunity.', status: 'open', created_at: new Date(Date.now() - 53 * 60 * 1000).toISOString() },
+  { id: 'preview-1', machine_id: 'HYDRAULIC-PRESS-001', severity: 'critical', title: 'Critical process temperature', message: 'The illustrative reading is 325 K and exceeds the configured critical threshold. Review the machine using site procedures.', status: 'open', created_at: new Date(Date.now() - 6 * 60 * 1000).toISOString() },
+  { id: 'preview-2', machine_id: 'HYDRAULIC-PRESS-001', severity: 'critical', title: 'Torque above configured limit', message: 'The illustrative torque reading is 72 Nm. Inspect load and tooling using approved procedures.', status: 'open', created_at: new Date(Date.now() - 12 * 60 * 1000).toISOString() },
+  { id: 'preview-3', machine_id: 'PRECISION-LATHE-001', severity: 'warning', title: 'Tool wear requires attention', message: 'The illustrative tool-wear reading is elevated. Plan an inspection as appropriate.', status: 'open', created_at: new Date(Date.now() - 24 * 60 * 1000).toISOString() },
 ];
 
-const demoTemperature = [309.1, 309.6, 310.2, 309.8, 311.5, 312.1, 311.2, 313.4, 312.8, 314.2, 313.8, 313.1, 315.2, 314.6, 313.9, 312.7, 313.5, 312.9];
+// Used only when the API is unavailable. This is explicitly labelled as illustrative.
+const demoTemperature = [318.0, 319.0, 319.5, 320.0, 321.0, 320.8, 322.0, 322.6, 323.0, 324.0, 323.5, 324.2, 324.8, 324.0, 324.5, 324.4, 325.0, 325.0];
+
+const DEMO_MACHINE_LABELS = {
+  'CNC-MILL-001': { name: 'CNC Milling Cell 01', area: 'Machining · Line A' },
+  'PRECISION-LATHE-001': { name: 'Precision Lathe 01', area: 'Machining · Line A' },
+  'HYDRAULIC-PRESS-001': { name: 'Hydraulic Press 01', area: 'Forming · Line B' },
+};
 
 function Icon({ name, size = 19, strokeWidth = 1.8 }) {
   const paths = {
@@ -83,16 +113,38 @@ function getSensor(reading, aliases, fallback = null) {
 }
 
 function normalizeMachine(machine, index = 0) {
-  const reading = firstDefined(machine, ['latest_reading', 'latestReading', 'reading', 'sensors'], machine) || machine;
-  const id = String(firstDefined(machine, ['machine_id', 'machineId', 'id', 'asset_id', 'assetId'], `MACHINE-${String(index + 1).padStart(2, '0')}`));
-  const score = Math.round(Math.max(0, Math.min(100, toNumber(firstDefined(machine, ['health_score', 'healthScore', 'score']), null) ?? 88)));
-  const rawCondition = String(firstDefined(machine, ['condition', 'status', 'health_status', 'healthStatus'], score >= 85 ? 'healthy' : score >= 60 ? 'attention_required' : 'critical')).toLowerCase();
-  const condition = rawCondition.includes('critical') || rawCondition === 'offline' ? 'critical' : rawCondition.includes('attention') || rawCondition.includes('warning') || rawCondition.includes('maintenance') ? 'attention' : 'healthy';
+  // /fleet/overview uses sensor_readings; monitoring history rows put sensors at top level.
+  const reading = firstDefined(
+    machine,
+    ['latest_reading', 'latestReading', 'sensor_readings', 'sensorReadings', 'reading', 'sensors'],
+    machine,
+  ) || machine;
+  const id = String(firstDefined(
+    machine,
+    ['machine_id', 'machineId', 'id', 'asset_id', 'assetId'],
+    `MACHINE-${String(index + 1).padStart(2, '0')}`,
+  ));
+  const display = DEMO_MACHINE_LABELS[id] || {};
+  const score = Math.round(Math.max(0, Math.min(100, toNumber(
+    firstDefined(machine, ['health_score', 'healthScore', 'score']),
+    null,
+  ) ?? 88)));
+  const rawCondition = String(firstDefined(
+    machine,
+    ['condition', 'status', 'health_status', 'healthStatus'],
+    score >= 85 ? 'healthy' : score >= 60 ? 'attention_required' : 'critical',
+  )).toLowerCase();
+  const condition = rawCondition.includes('critical') || rawCondition === 'offline'
+    ? 'critical'
+    : rawCondition.includes('attention') || rawCondition.includes('warning') || rawCondition.includes('maintenance')
+      ? 'attention'
+      : 'healthy';
+
   return {
     ...machine,
     machine_id: id,
-    name: firstDefined(machine, ['name', 'machine_name', 'machineName', 'label'], id),
-    area: firstDefined(machine, ['area', 'location', 'line', 'site'], 'Production floor'),
+    name: firstDefined(machine, ['name', 'machine_name', 'machineName', 'label'], display.name || id),
+    area: firstDefined(machine, ['area', 'location', 'line', 'site'], display.area || 'Production floor'),
     health_score: score,
     condition,
     open_alerts: toNumber(firstDefined(machine, ['open_alerts', 'openAlerts', 'alert_count', 'alertCount']), 0),
@@ -103,7 +155,11 @@ function normalizeMachine(machine, index = 0) {
       rotational_speed: getSensor(reading, ['rotational_speed', 'rotational_speed_rpm', 'rotationalSpeed', 'rotationalSpeedRpm', 'speed_rpm']),
       torque: getSensor(reading, ['torque', 'torque_nm', 'torqueNm']),
       tool_wear: getSensor(reading, ['tool_wear', 'tool_wear_min', 'toolWear', 'toolWearMin']),
-      timestamp: firstDefined(reading, ['timestamp', 'recorded_at', 'created_at', 'createdAt'], firstDefined(machine, ['updated_at', 'updatedAt', 'timestamp'], null)),
+      timestamp: firstDefined(
+        reading,
+        ['received_at', 'timestamp', 'recorded_at', 'created_at', 'createdAt'],
+        firstDefined(machine, ['latest_reading_at', 'received_at', 'updated_at', 'updatedAt', 'timestamp'], null),
+      ),
     },
   };
 }
@@ -197,7 +253,7 @@ function Sparkline({ values, accent = 'mint' }) {
   return <svg className={`sparkline sparkline-${accent}`} viewBox="0 0 100 28" preserveAspectRatio="none" aria-hidden="true"><polyline points={points} fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" /></svg>;
 }
 
-function TemperatureChart({ values, preview }) {
+function TemperatureChart({ values, preview, snapshotOnly = false }) {
   const data = values.length ? values : demoTemperature;
   const width = 700;
   const height = 210;
@@ -222,9 +278,10 @@ function TemperatureChart({ values, preview }) {
         <path d={area} fill="url(#tempArea)" />
         <path d={line} fill="none" stroke="#3568ED" strokeWidth="2.7" strokeLinecap="round" strokeLinejoin="round" />
         {pts.length > 0 && <><circle cx={pts[pts.length - 1].x} cy={pts[pts.length - 1].y} r="5" fill="#FFFFFF" stroke="#3568ED" strokeWidth="3"/><circle cx={pts[pts.length - 1].x} cy={pts[pts.length - 1].y} r="9" fill="#3568ED" opacity=".12"/></>}
-        <text x={left} y={height - 5} fill="#92A0B3" fontSize="11">Earlier</text><text x={width - right} y={height - 5} textAnchor="end" fill="#92A0B3" fontSize="11">Latest sample</text>
+        <text x={left} y={height - 5} fill="#92A0B3" fontSize="11">Earlier</text><text x={width - right} y={height - 5} textAnchor="end" fill="#92A0B3" fontSize="11">{snapshotOnly ? 'Current snapshot' : preview ? 'Latest sample' : 'Latest reading'}</text>
       </svg>
-      {preview && <span className="chart-preview-note">Illustrative trend · connect backend for live readings</span>}
+      {preview && <span className="chart-preview-note">Illustrative trend · connect the backend to view stored readings</span>}
+      {snapshotOnly && <span className="chart-preview-note">Historical samples unavailable · showing the selected machine's latest stored reading.</span>}
     </div>
   );
 }
@@ -287,6 +344,7 @@ function App() {
   const [assistantLoading, setAssistantLoading] = useState(false);
   const [assistantError, setAssistantError] = useState('');
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const [chartMachineId, setChartMachineId] = useState('');
 
   const loadDashboard = useCallback(async (isRefresh = false) => {
     if (isRefresh) setRefreshing(true);
@@ -358,6 +416,12 @@ function App() {
     return sev(a) - sev(b) || new Date(b.created_at || 0) - new Date(a.created_at || 0);
   });
   const openAlerts = displayedAlerts.filter(alert => !['acknowledged', 'resolved', 'closed'].includes(alert.status));
+  // The alerts endpoint is paginated, so prefer the fleet overview's aggregate count when available.
+  const reportedOpenAlertCount = previewMode ? null : toNumber(
+    firstDefined(fleetPayload?.summary, ['total_open_alerts', 'open_alerts', 'openAlerts', 'open_alert_count']),
+    null,
+  );
+  const openAlertCount = reportedOpenAlertCount ?? openAlerts.length;
   const healthyCount = toNumber(firstDefined(fleetPayload?.summary, ['healthy_machines', 'healthy', 'healthy_count']), displayedMachines.filter(m => m.condition === 'healthy').length) ?? 0;
   const attentionCount = toNumber(firstDefined(fleetPayload?.summary, ['attention_machines', 'attention_required', 'attention_count']), displayedMachines.filter(m => m.condition === 'attention').length) ?? 0;
   const criticalCount = toNumber(firstDefined(fleetPayload?.summary, ['critical_machines', 'critical', 'critical_count']), displayedMachines.filter(m => m.condition === 'critical').length) ?? 0;
@@ -366,12 +430,32 @@ function App() {
   const filteredAlerts = displayedAlerts.filter(alert => alertFilter === 'all' || (alertFilter === 'open' ? !['acknowledged', 'resolved', 'closed'].includes(alert.status) : severityClass(alert.severity) === alertFilter));
   const historyRows = unwrapList(historyPayload, ['readings', 'items', 'results', 'data']);
   const orderedHistoryRows = [...historyRows].sort((a, b) => {
-    const timeA = new Date(firstDefined(a, ['timestamp', 'recorded_at', 'created_at', 'createdAt'], 0)).getTime() || 0;
-    const timeB = new Date(firstDefined(b, ['timestamp', 'recorded_at', 'created_at', 'createdAt'], 0)).getTime() || 0;
-    return timeA - timeB;
+    const timeA = new Date(firstDefined(a, ['received_at', 'timestamp', 'recorded_at', 'created_at', 'createdAt'], 0)).getTime() || 0;
+    const timeB = new Date(firstDefined(b, ['received_at', 'timestamp', 'recorded_at', 'created_at', 'createdAt'], 0)).getTime() || 0;
+    if (timeA !== timeB) return timeA - timeB;
+    // The backend may assign identical timestamps to different demo-machine readings.
+    return (Number(a.id) || 0) - (Number(b.id) || 0);
   });
-  const chartTemps = orderedHistoryRows.map(row => getTemperature(firstDefined(row, ['latest_reading', 'reading', 'sensors'], row))).filter(value => value !== null);
-  const latestTemperature = chartTemps.length ? chartTemps[chartTemps.length - 1] : displayedMachines.map(m => getTemperature(m.latest_reading)).find(value => value !== null) ?? null;
+  const chartMachine = displayedMachines.find(machine => machine.machine_id === chartMachineId)
+    || displayedMachines.find(machine => machine.condition === 'critical')
+    || displayedMachines[0]
+    || null;
+  const effectiveChartMachineId = chartMachine?.machine_id || '';
+  const selectedMachineHistory = orderedHistoryRows.filter(row => String(row.machine_id || '') === effectiveChartMachineId);
+  const chartTemps = selectedMachineHistory
+    .map(row => getTemperature(firstDefined(row, ['latest_reading', 'sensor_readings', 'reading', 'sensors'], row)))
+    .filter(value => value !== null);
+  const selectedLatestTemperature = chartMachine ? getTemperature(chartMachine.latest_reading) : null;
+  const chartPreview = previewMode;
+  const chartSnapshotOnly = !previewMode && chartTemps.length === 0 && selectedLatestTemperature !== null;
+  const chartValues = chartTemps.length
+    ? chartTemps
+    : chartSnapshotOnly
+      ? [selectedLatestTemperature]
+      : [];
+  const latestTemperature = chartTemps.length
+    ? chartTemps[chartTemps.length - 1]
+    : selectedLatestTemperature;
   const totalReadingCount = firstDefined(summaryPayload, ['total_readings', 'readings_count', 'totalReadings'], firstDefined(summaryPayload?.summary, ['total_readings', 'readings_count'], historyRows.length));
 
   const navigate = (id) => {
@@ -428,7 +512,7 @@ function App() {
         <nav className="side-nav" aria-label="Main navigation">
           <button className={`nav-item ${activeNav === 'overview' ? 'nav-active' : ''}`} onClick={() => navigate('overview')}><Icon name="grid"/><span>Overview</span><span className="nav-active-line" /></button>
           <button className={`nav-item ${activeNav === 'machines' ? 'nav-active' : ''}`} onClick={() => navigate('machines')}><Icon name="machine"/><span>Machine fleet</span><span className="nav-count">{displayedMachines.length}</span></button>
-          <button className={`nav-item ${activeNav === 'alerts' ? 'nav-active' : ''}`} onClick={() => navigate('alerts')}><Icon name="bell"/><span>Alerts center</span>{openAlerts.length > 0 && <span className="nav-alert-count">{openAlerts.length}</span>}</button>
+          <button className={`nav-item ${activeNav === 'alerts' ? 'nav-active' : ''}`} onClick={() => navigate('alerts')}><Icon name="bell"/><span>Alerts center</span>{openAlertCount > 0 && <span className="nav-alert-count">{openAlertCount}</span>}</button>
           <button className={`nav-item ${activeNav === 'assistant' ? 'nav-active' : ''}`} onClick={() => navigate('assistant')}><Icon name="spark"/><span>Maintenance copilot</span><span className="nav-new">AI</span></button>
         </nav>
         <div className="sidebar-bottom">
@@ -442,7 +526,7 @@ function App() {
       <main className="main-area">
         <header className="topbar">
           <div className="topbar-left"><button className="mobile-menu icon-button" onClick={() => setMobileNavOpen(true)} aria-label="Open navigation"><Icon name="menu"/></button><div className="breadcrumb"><span>Workspace</span><Icon name="chevron" size={13}/><strong>{activeNav === 'machines' ? 'Machine fleet' : activeNav === 'alerts' ? 'Alerts center' : activeNav === 'assistant' ? 'Maintenance copilot' : 'Overview'}</strong></div></div>
-          <div className="topbar-actions"><div className={`connection-pill ${apiOnline ? 'connection-live' : 'connection-demo'}`}><span className="connection-dot" />{apiOnline ? 'Backend connected' : 'Preview mode'}</div><div className="topbar-divider"/><span className="topbar-date">{new Date().toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' })}</span><button className={`icon-button refresh-button ${refreshing ? 'rotating' : ''}`} onClick={() => loadDashboard(true)} aria-label="Refresh dashboard" title="Refresh data"><Icon name="refresh" size={18}/></button><div className="topbar-profile">OP</div></div>
+          <div className="topbar-actions"><div className={`connection-pill ${(!apiOnline || previewMode || loadError) ? 'connection-demo' : 'connection-live'}`} title={loadError || (previewMode ? 'Illustrative machine data is being shown.' : 'Dashboard data is available from the backend.')}><span className="connection-dot" />{previewMode ? 'Preview data' : loadError ? 'Partial connection' : 'Backend connected'}</div><div className="topbar-divider"/><span className="topbar-date">{new Date().toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' })}</span><button className={`icon-button refresh-button ${refreshing ? 'rotating' : ''}`} onClick={() => loadDashboard(true)} aria-label="Refresh dashboard" title="Refresh data"><Icon name="refresh" size={18}/></button><div className="topbar-profile">OP</div></div>
         </header>
 
         <div className="page-content">
@@ -455,18 +539,18 @@ function App() {
           {previewMode && !loadError && <div className="system-banner banner-preview"><span className="banner-mark"><Icon name="activity" size={16}/></span><p><strong>Preview data is on</strong>The dashboard is showing illustrative machines and signals. Connect the FastAPI service to display operational data.</p><button className="banner-action" onClick={() => loadDashboard(true)}>Retry <Icon name="arrow" size={13}/></button></div>}
 
           <section className="metrics-grid" aria-label="Fleet health summary">
-            <MetricCard icon="machine" label="Machines monitored" value={previewMode ? '04' : String(toNumber(firstDefined(fleetPayload?.summary, ['total_machines', 'machines_monitored', 'total']), displayedMachines.length)).padStart(2, '0')} note={apiOnline ? 'Live inventory' : 'Preview inventory'} accent="dark" spark={[3, 3, 4, 4, 4, 4, 4]} />
+            <MetricCard icon="machine" label="Machines monitored" value={String(previewMode ? displayedMachines.length : toNumber(firstDefined(fleetPayload?.summary, ['total_machines', 'machines_monitored', 'total']), displayedMachines.length)).padStart(2, '0')} note={previewMode ? 'Preview inventory' : loadError ? 'Partial inventory' : 'Live inventory'} accent="dark" spark={[3, 3, 4, 4, 4, 4, 4]} />
             <MetricCard icon="check" label="Healthy machines" value={String(healthyCount).padStart(2, '0')} note={`${Math.round(healthyCount / Math.max(displayedMachines.length, 1) * 100)}% of fleet`} accent="mint" spark={[5, 6, 5, 7, 7, 8, 8]} />
             <MetricCard icon="activity" label="Need attention" value={String(attentionCount).padStart(2, '0')} note="Early intervention" accent="amber" spark={[2, 3, 2, 4, 3, 4, 4]} />
-            <MetricCard icon="bell" label="Critical machines" value={String(criticalCount).padStart(2, '0')} note={`${openAlerts.length} open alert${openAlerts.length === 1 ? '' : 's'}`} accent="critical" spark={[1, 1, 2, 1, 2, 3, 2]} />
+            <MetricCard icon="bell" label="Critical machines" value={String(criticalCount).padStart(2, '0')} note={`${openAlertCount} open alert${openAlertCount === 1 ? '' : 's'}`} accent="critical" spark={[1, 1, 2, 1, 2, 3, 2]} />
           </section>
 
           <section className="insights-grid">
             <article className="panel temperature-panel">
-              <div className="panel-header"><div><div className="section-kicker">SENSOR TELEMETRY</div><h2>Process temperature</h2><p>Spot shifts before they become downtime.</p></div><div className="panel-header-right"><span className={`data-tag ${previewMode ? 'tag-preview' : 'tag-live'}`}><i/>{previewMode ? 'Sample trend' : 'Latest data'}</span><button className="icon-button panel-menu" aria-label="More temperature options">···</button></div></div>
-              <div className="temperature-summary"><div><span className="current-reading">{formatValue(latestTemperature ?? getTemperature(displayedMachines[0]?.latest_reading), 1)}<small> K</small></span><span className="reading-caption">Latest process reading</span></div><div className="temperature-delta"><span className="delta-icon"><Icon name="activity" size={15}/></span><span><strong>{latestTemperature === null ? '—' : 'Monitoring'}</strong><small>Signal status</small></span></div></div>
-              <TemperatureChart values={chartTemps} preview={previewMode || chartTemps.length === 0}/>
-              <div className="chart-footer"><span><i className="chart-legend-line"/>Process temperature (K)</span><span>Refreshes every 30 seconds <Icon name="clock" size={13}/></span></div>
+              <div className="panel-header"><div><div className="section-kicker">SENSOR TELEMETRY</div><h2>Process temperature</h2><p>One machine at a time, ordered by stored reading time.</p></div><div className="panel-header-right"><select className="chart-machine-select" value={effectiveChartMachineId} onChange={event => setChartMachineId(event.target.value)} aria-label="Select machine for temperature chart" title="Select machine for temperature chart" style={{ height: 30, maxWidth: 155, minWidth: 0, padding: "0 7px", border: "1px solid #dfe6f0", borderRadius: 7, color: "#34435b", background: "#fff", fontSize: 10 }}>{displayedMachines.map(machine => <option key={machine.machine_id} value={machine.machine_id}>{machine.name}</option>)}</select><span className={`data-tag ${(chartPreview || chartSnapshotOnly) ? 'tag-preview' : 'tag-live'}`}><i/>{chartPreview ? 'Sample trend' : chartSnapshotOnly ? 'Snapshot only' : chartTemps.length ? 'Stored history' : 'No history'}</span><button className="icon-button panel-menu" aria-label="More temperature options">···</button></div></div>
+              <div className="temperature-summary"><div><span className="current-reading">{formatValue(latestTemperature ?? getTemperature(displayedMachines[0]?.latest_reading), 1)}<small> K</small></span><span className="reading-caption">{chartMachine ? `${chartMachine.name} · latest process reading` : 'Latest process reading'}</span></div><div className="temperature-delta"><span className="delta-icon"><Icon name="activity" size={15}/></span><span><strong>{latestTemperature === null ? '—' : 'Monitoring'}</strong><small>Signal status</small></span></div></div>
+              <TemperatureChart values={chartValues} preview={chartPreview} snapshotOnly={chartSnapshotOnly}/>
+              <div className="chart-footer"><span><i className="chart-legend-line"/>Process temperature (K) · {chartMachine?.machine_id || 'No machine selected'}</span><span>Refreshes every 30 seconds <Icon name="clock" size={13}/></span></div>
             </article>
 
             <article className="panel fleet-health-panel">
@@ -485,10 +569,10 @@ function App() {
 
           <section className="bottom-grid">
             <article className="panel alerts-panel" id="alerts-section">
-              <div className="panel-header"><div><div className="section-kicker">ATTENTION REQUIRED</div><h2>Latest alerts <span className="heading-count heading-count-alert">{openAlerts.length}</span></h2><p>Prioritised events from your machine fleet.</p></div><button className="quiet-button" onClick={() => { setAlertFilter('all'); navigate('alerts'); }}>View all <Icon name="arrow" size={14}/></button></div>
+              <div className="panel-header"><div><div className="section-kicker">ATTENTION REQUIRED</div><h2>Latest alerts <span className="heading-count heading-count-alert">{openAlertCount}</span></h2><p>Prioritised events from your machine fleet.</p></div><button className="quiet-button" onClick={() => { setAlertFilter('all'); navigate('alerts'); }}>View all <Icon name="arrow" size={14}/></button></div>
               <div className="alert-filters" role="group" aria-label="Filter alerts">{[{ id: 'all', label: 'All' }, { id: 'open', label: 'Open' }, { id: 'critical', label: 'Critical' }, { id: 'warning', label: 'Warning' }].map(filter => <button key={filter.id} className={alertFilter === filter.id ? 'alert-filter active-filter' : 'alert-filter'} onClick={() => setAlertFilter(filter.id)}>{filter.label}{filter.id === 'open' && <span>{openAlerts.length}</span>}</button>)}</div>
               <div className="alert-list">{filteredAlerts.slice(0, 4).map(alert => <AlertRow key={alert.id} alert={alert} onAcknowledge={acknowledgeAlert} busy={acknowledgingId === alert.id}/>)}{filteredAlerts.length === 0 && <div className="empty-state"><div className="empty-icon"><Icon name="check" size={21}/></div><strong>You're all caught up</strong><p>No alerts match this filter.</p></div>}</div>
-              <div className="alerts-footer"><span><span className="tiny-status-dot"/> {openAlerts.length} open alerts</span><button className="text-link" onClick={() => navigate('alerts')}>Go to alerts center <Icon name="arrow" size={14}/></button></div>
+              <div className="alerts-footer"><span><span className="tiny-status-dot"/> {openAlertCount} open alerts</span><button className="text-link" onClick={() => navigate('alerts')}>Go to alerts center <Icon name="arrow" size={14}/></button></div>
             </article>
 
             <article className="copilot-card" id="assistant-section">
@@ -503,7 +587,7 @@ function App() {
             </article>
           </section>
 
-          <footer className="page-footer"><div className="footer-brand"><LogoMark/><span>FactoryPulse AI</span><i>·</i><span>Industrial intelligence, made practical.</span></div><div className="footer-meta"><span>{apiOnline ? `Last synced ${lastUpdated ? formatTime(lastUpdated) : 'just now'}` : 'Preview workspace'}</span><span className="footer-dot">·</span><span>v0.1.0</span></div></footer>
+          <footer className="page-footer"><div className="footer-brand"><LogoMark/><span>FactoryPulse AI</span><i>·</i><span>Industrial intelligence, made practical.</span></div><div className="footer-meta"><span>{!previewMode && apiOnline && !loadError ? `Last synced ${lastUpdated ? formatTime(lastUpdated) : 'just now'}` : 'Preview / partial workspace'}</span><span className="footer-dot">·</span><span>v0.1.0</span></div></footer>
         </div>
       </main>
 
