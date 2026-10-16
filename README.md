@@ -1,87 +1,52 @@
-# ForgePulse AI
+# FactoryPulse AI — Frontend update
 
-### AMD-Powered Industrial Intelligence
+This is a drop-in React/Vite UI refresh for the existing `apps/frontend` directory. It uses only React and Vite (no chart or icon dependency is added). The visual system is the **Industrial Signal** theme: graphite-blue navigation, an icy neutral canvas, cobalt actions, cyan data accents, and restrained amber/red alert states. It intentionally avoids the previous forest-green/lime palette.
 
-ForgePulse AI is an industrial AI platform designed to help
-factories identify unusual machine behaviour, investigate
-potential problems, and retrieve relevant maintenance guidance.
+## Apply the update
 
-## Problem
+1. Stop the frontend dev server with `Ctrl + C`.
+2. Extract this ZIP into the **root of your existing `FactoryPulse-AI` project**. Allow the files under `apps/frontend` to merge/overwrite.
+3. Keep your existing `package.json`, `package-lock.json`, and `src/main.jsx`. The Vite React starter's `main.jsx` should already import `./index.css` and `./App.jsx`.
+4. Start the backend in one terminal, from the project root:
 
-Factories generate sensor readings, equipment logs, and
-technical documentation. Identifying unusual behaviour and
-finding the right troubleshooting information can take time.
+   ```powershell
+   .\.venv\Scripts\Activate.ps1
+   python -m uvicorn app.main:app --app-dir apps/backend --host 127.0.0.1 --port 8000 --reload
+   ```
 
-ForgePulse AI aims to bring these capabilities together in
-one practical application.
+5. Start the frontend in another terminal:
 
-## Planned Features
+   ```powershell
+   cd apps/frontend
+   npm install
+   npm run dev
+   ```
 
-- Industrial sensor anomaly detection
-- Machine health monitoring
-- AI-assisted troubleshooting
-- Retrieval-augmented generation (RAG)
-- Maintenance alerts and recommendations
-- AMD GPU-accelerated model inference
+6. Open the Vite URL printed in the terminal (usually `http://localhost:5173`).
 
-## Technology Stack
+## Backend connection
 
-### Machine Learning
-- Python
-- PyTorch
-- Scikit-learn
+The UI expects these endpoints on the existing FastAPI backend:
 
-### AMD Integration
-- AMD Instinct GPU
-- AMD ROCm
+- `GET /api/v1/fleet/overview`
+- `GET /api/v1/monitoring/summary`
+- `GET /api/v1/monitoring/readings?limit=100`
+- `GET /api/v1/alerts?limit=12`
+- `PATCH /api/v1/alerts/{alert_id}/acknowledge`
+- `POST /api/v1/maintenance/assistant` with `{ "question": "..." }`
 
-### Backend
-- FastAPI
-- PostgreSQL
+Vite proxies `/api/*` requests to `http://127.0.0.1:8000`. Set `FACTORYPULSE_API_URL` before starting Vite if your backend runs at another address.
 
-### Frontend
-- React
-- TypeScript
-- Vite
+The UI tolerates common response wrappers (`machines`, `items`, `alerts`, `readings`, and `summary`). If it cannot find machine rows, it displays clearly labelled **illustrative preview data** instead of presenting sample values as live telemetry. API status is shown in the header. Maintenance assistant output depends on the backend route and configuration being available.
 
-### Generative AI
-- Large Language Model API
-- Embeddings
-- Vector search
-- Retrieval-augmented generation
+## Included UX
 
-## Development Approach
+- Responsive operations dashboard and navigation
+- Fleet summary and machine health distribution
+- Sensor trend visualization with live history when available
+- Searchable machine table and detail drawer
+- Prioritized alert list and acknowledgement action
+- Maintenance copilot interface with prompt suggestions and source display
+- Preview-mode warning, refresh button, and 30-second polling
 
-The model will be trained in a cloud environment rather than
-on the developer's laptop.
-
-AMD GPU inference will be integrated into the deployed
-application and verified using the actual execution runtime.
-
-## Current Status
-
-Early development.
-
-Model training, evaluation, AMD integration, and application
-deployment are planned development milestones.
-
-## Planned Dataset
-
-AI4I 2020 Predictive Maintenance Dataset.
-
-This dataset contains synthetic industrial sensor observations
-and machine failure labels.
-
-## Project Structure
-
-- `apps/frontend/` — React application
-- `apps/backend/` — FastAPI application
-- `ml/` — Model training and inference
-- `knowledge_base/` — Maintenance document retrieval
-- `docs/` — Technical documentation
-- `scripts/` — Development and verification scripts
-- `tests/` — Automated tests
-
-## License
-
-MIT License (planned).
+The health indicator reflects the backend's current scoring/rule logic. It is not a certified safety assessment, and illustrative warning thresholds should be validated for the actual equipment before operational use.
