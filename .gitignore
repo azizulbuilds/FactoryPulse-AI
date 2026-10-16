@@ -51,3 +51,50 @@ apps/backend/data/*.db
 apps/backend/data/*.db-journal
 apps/backend/data/*.db-wal
 apps/backend/data/*.db-shm
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyd
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Environment variables and secrets
+.env
+.env.*
+!.env.example
+
+# SQLite databases
+apps/backend/data/*.db
+apps/backend/data/*.db-journal
+apps/backend/data/*.db-wal
+apps/backend/data/*.db-shm
+
+# Machine learning artifacts
+ml/artifacts/
+*.pth
+*.pt
+*.onnx
+*.h5
+*.keras
+
+# Test and coverage files
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Logs
+*.log
+
+# Node.js
+node_modules/
+apps/frontend/node_modules/
+apps/frontend/dist/
+
+# Build and editor files
+.DS_Store
+Thumbs.db
+.vscode/
