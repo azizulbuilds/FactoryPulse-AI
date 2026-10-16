@@ -5,6 +5,8 @@ from app.api.predictions import router as predictions_router
 from app.api.maintenance import router as maintenance_router
 from app.api.monitoring import router as monitoring_router
 from app.api.alerts import router as alerts_router
+from app.api.machine_health import router as machine_health_router
+from app.api.fleet import router as fleet_router
 
 from app.core.config import settings
 
@@ -48,6 +50,14 @@ app.include_router(
     prefix=settings.API_PREFIX,
 )
 
+app.include_router(
+    machine_health_router,
+    prefix=settings.API_PREFIX,
+)
+app.include_router(
+    fleet_router,
+    prefix=settings.API_PREFIX,
+)
 
 # --------------------------------------------------
 # Root endpoint
