@@ -1,52 +1,258 @@
-# FactoryPulse AI — Frontend update
+# FactoryPulse AI
 
-This is a drop-in React/Vite UI refresh for the existing `apps/frontend` directory. It uses only React and Vite (no chart or icon dependency is added). The visual system is the **Industrial Signal** theme: graphite-blue navigation, an icy neutral canvas, cobalt actions, cyan data accents, and restrained amber/red alert states. It intentionally avoids the previous forest-green/lime palette.
+**AI-assisted industrial monitoring and predictive-maintenance demo
+built with FastAPI, React, SQLite, and AMD Token Factory.**
 
-## Apply the update
+FactoryPulse AI brings machine-health indicators, sensor readings,
+alerts, and maintenance knowledge into one operations dashboard. Its
+Maintenance Copilot retrieves relevant passages from the maintenance
+knowledge base and, when configured, uses AMD Token Factory to generate
+a grounded response.
 
-1. Stop the frontend dev server with `Ctrl + C`.
-2. Extract this ZIP into the **root of your existing `FactoryPulse-AI` project**. Allow the files under `apps/frontend` to merge/overwrite.
-3. Keep your existing `package.json`, `package-lock.json`, and `src/main.jsx`. The Vite React starter's `main.jsx` should already import `./index.css` and `./App.jsx`.
-4. Start the backend in one terminal, from the project root:
+> **Demo and safety notice:** This project currently uses
+> illustrative/demo machine data. It is not connected to live industrial
+> equipment. Health scores, alert rules, and recommendations are not
+> certified safety limits. Do not use this demo to control machinery or
+> make safety-critical decisions.
 
-   ```powershell
-   .\.venv\Scripts\Activate.ps1
-   python -m uvicorn app.main:app --app-dir apps/backend --host 127.0.0.1 --port 8000 --reload
-   ```
+## Features
 
-5. Start the frontend in another terminal:
+-   Fleet overview, machine-health scores, machine status, and
+    sensor-reading summaries.
+-   Prioritized alerts and alert acknowledgement.
+-   Maintenance Copilot using `knowledge_base/maintenance_basics.md`.
+-   Optional LLM-generated answers through AMD Token Factory.
+-   FastAPI REST backend with interactive API documentation.
+-   Responsive React + Vite frontend.
+-   SQLite persistence for local demo data.
+-   Automated backend API and machine-rule tests.
+-   Prepared sensor dataset for future ML experiments.
 
-   ```powershell
-   cd apps/frontend
-   npm install
-   npm run dev
-   ```
+## Tech Stack
 
-6. Open the Vite URL printed in the terminal (usually `http://localhost:5173`).
+  Layer       Technologies
+  ----------- ---------------------------------------------------------
+  Frontend    React, Vite, JavaScript, CSS
+  Backend     Python 3.11, FastAPI, Pydantic
+  Data        SQLite, CSV
+  Retrieval   TF-IDF-based knowledge retrieval
+  LLM         AMD Token Factory, configured model `DeepSeek-V4-Flash`
+  Testing     pytest
 
-## Backend connection
+## Architecture
 
-The UI expects these endpoints on the existing FastAPI backend:
+``` text
+React + Vite dashboard
+        | HTTP / REST
+        v
+FastAPI backend
+  ├── Fleet overview and machine health
+  ├── Monitoring readings and summary
+  ├── Alerts and acknowledgement
+  └── Maintenance assistant
+         ├── Local maintenance knowledge base
+         └── Optional AMD Token Factory LLM
+        |
+        v
+SQLite demo database
 
-- `GET /api/v1/fleet/overview`
-- `GET /api/v1/monitoring/summary`
-- `GET /api/v1/monitoring/readings?limit=100`
-- `GET /api/v1/alerts?limit=12`
-- `PATCH /api/v1/alerts/{alert_id}/acknowledge`
-- `POST /api/v1/maintenance/assistant` with `{ "question": "..." }`
+ML experiments
+  └── ml/data/processed/sensor_data.csv
+```
 
-Vite proxies `/api/*` requests to `http://127.0.0.1:8000`. Set `FACTORYPULSE_API_URL` before starting Vite if your backend runs at another address.
+## Repository Layout
 
-The UI tolerates common response wrappers (`machines`, `items`, `alerts`, `readings`, and `summary`). If it cannot find machine rows, it displays clearly labelled **illustrative preview data** instead of presenting sample values as live telemetry. API status is shown in the header. Maintenance assistant output depends on the backend route and configuration being available.
+``` text
+FactoryPulse-AI/
+├── apps/
+│   ├── backend/          # FastAPI application and database
+│   └── frontend/         # React + Vite dashboard
+├── knowledge_base/       # Maintenance reference material
+├── ml/
+│   ├── data/processed/   # Processed sensor dataset
+│   ├── configs/          # ML experiment configuration
+│   ├── artifacts/        # Generated model artifacts, if any
+│   └── src/              # ML and RAG scripts
+├── scripts/              # Utility scripts
+├── tests/                # Backend tests
+├── .gitignore
+└── README.md
+```
 
-## Included UX
+## Requirements
 
-- Responsive operations dashboard and navigation
-- Fleet summary and machine health distribution
-- Sensor trend visualization with live history when available
-- Searchable machine table and detail drawer
-- Prioritized alert list and acknowledgement action
-- Maintenance copilot interface with prompt suggestions and source display
-- Preview-mode warning, refresh button, and 30-second polling
+-   Python 3.11 recommended
+-   Node.js and npm compatible with the Vite project
+-   Git
+-   Optional: AMD Token Factory API key for LLM-generated maintenance
+    answers
 
-The health indicator reflects the backend's current scoring/rule logic. It is not a certified safety assessment, and illustrative warning thresholds should be validated for the actual equipment before operational use.
+## Run Locally (Windows PowerShell)
+
+Run commands from the repository root unless noted otherwise.
+
+### 1. Create and activate the Python environment
+
+``` powershell
+py -3.11 -m venv .venv
+.\.venv\Scripts\Activate.ps1
+```
+
+Install backend dependencies using the requirements file present in
+`apps/backend`:
+
+``` powershell
+pip install -r apps\backend\requirements.txt
+```
+
+### 2. Configure the optional LLM integration
+
+Set these variables in the same PowerShell terminal that will launch the
+backend:
+
+``` powershell
+$env:FACTORYPULSE_LLM_BASE_URL = "https://developer.amd.com.cn/radeon/api/v1"
+$env:FACTORYPULSE_LLM_MODEL = "DeepSeek-V4-Flash"
+$env:FACTORYPULSE_LLM_API_KEY = "YOUR_AMD_TOKEN_FACTORY_KEY"
+```
+
+Replace the placeholder locally. **Never commit a real API key, paste it
+into issues, or put it in README/source code.** These environment
+variables apply to that terminal session and processes launched from it.
+Set them again in a new terminal session when needed.
+
+The backend reads `FACTORYPULSE_LLM_API_KEY`. Keep local `.env` files
+out of Git. If a key was ever committed or pushed, revoke/rotate it even
+if the file was later removed.
+
+### 3. Start the backend
+
+With `.venv` activated, from the repository root:
+
+``` powershell
+python -m uvicorn app.main:app --app-dir apps/backend --host 127.0.0.1 --port 8000 --reload
+```
+
+Open FastAPI's interactive documentation at
+`http://127.0.0.1:8000/docs`.
+
+### 4. Start the frontend
+
+Open a second terminal:
+
+``` powershell
+cd apps\frontend
+npm install
+npm run dev
+```
+
+Open the local URL printed by Vite, usually `http://localhost:5173`.
+Keep the backend running while testing the dashboard.
+
+## API Endpoints
+
+  -----------------------------------------------------------------------------------------
+  Method                  Endpoint                                  Purpose
+  ----------------------- ----------------------------------------- -----------------------
+  `GET`                   `/api/v1/fleet/overview`                  Fleet and machine
+                                                                    overview
+
+  `GET`                   `/api/v1/monitoring/summary`              Monitoring summary
+
+  `GET`                   `/api/v1/monitoring/readings?limit=100`   Recent sensor readings
+
+  `GET`                   `/api/v1/alerts?limit=12`                 Recent alerts
+
+  `PATCH`                 `/api/v1/alerts/{alert_id}/acknowledge`   Acknowledge an alert
+
+  `POST`                  `/api/v1/maintenance/assistant`           Ask the Maintenance
+                                                                    Copilot
+  -----------------------------------------------------------------------------------------
+
+Example Maintenance Copilot request:
+
+``` json
+{
+  "question": "What should I check when machine process temperature is too high?"
+}
+```
+
+Local maintenance-reference retrieval can run without the LLM.
+LLM-generated answers require valid AMD Token Factory configuration.
+Treat all recommendations as informational guidance, not approved
+maintenance procedures.
+
+## Testing
+
+From the repository root with the Python environment activated:
+
+``` powershell
+python -m pytest -q --ignore=ml/src/test_autoencoder.py
+```
+
+During development, this command completed with **14 passed**. The
+experimental autoencoder test was excluded because PyTorch was not
+installed in that environment. Re-run tests after changes and report the
+current result rather than assuming this earlier result still applies.
+
+Build the frontend:
+
+``` powershell
+cd apps\frontend
+npm run build
+```
+
+The production build completed successfully during development.
+
+## Demo Data and ML Status
+
+-   The dashboard uses illustrative/demo machine data, not live
+    industrial telemetry.
+-   Machine-health values and rule thresholds are demonstration logic,
+    not certified safety limits.
+-   A processed sensor dataset exists at
+    `ml/data/processed/sensor_data.csv`.
+-   The autoencoder/model-training workflow is experimental and is not
+    required for the current dashboard demo.
+-   Do not claim a predictive model is deployed or achieves a specific
+    accuracy unless current evaluation results and a deployed inference
+    path support that claim.
+
+## Security
+
+-   Do not commit `.env` files, API keys, access tokens, or credentials.
+-   Keep local secrets in environment variables or an ignored local
+    environment file.
+-   If a secret reaches GitHub, rotate/revoke it. Removing it from the
+    latest version does not necessarily remove it from Git history.
+-   The demo is not hardened for production industrial use. Before
+    deployment, review CORS, authentication/authorization, rate limits,
+    logging, persistence, and secret management.
+
+## Deployment Notes
+
+The project is currently designed for local demonstration. Before
+deploying publicly:
+
+1.  Configure the backend and frontend as separate services or use a
+    platform that supports both.
+2.  Set the frontend API base/proxy configuration to the deployed
+    backend URL.
+3.  Configure `FACTORYPULSE_LLM_BASE_URL`, `FACTORYPULSE_LLM_MODEL`, and
+    `FACTORYPULSE_LLM_API_KEY` as **server-side environment variables**
+    in the hosting provider.
+4.  Never expose the LLM key in frontend variables or browser code.
+5.  Verify persistent storage if SQLite data must survive restarts;
+    ephemeral hosting filesystems may reset.
+6.  Test `/docs`, dashboard API calls, and the Maintenance Copilot after
+    deployment.
+
+## Team
+
+**Team:** ForgePulse-AI
+
+## License
+
+Add a `LICENSE` file if the project is being distributed under an
+open-source license. Do not claim a license in this README until that
+file is committed.
