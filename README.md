@@ -253,6 +253,4 @@ deploying publicly:
 
 ## License
 
-Add a `LICENSE` file if the project is being distributed under an
-open-source license. Do not claim a license in this README until that
-file is committed.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
