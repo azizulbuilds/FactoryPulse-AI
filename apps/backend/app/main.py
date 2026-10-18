@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.health import router as health_router
 from app.api.predictions import router as predictions_router
@@ -18,6 +19,23 @@ app = FastAPI(
         "Industrial intelligence platform for machine "
         "monitoring, anomaly detection, and maintenance insights."
     ),
+)
+
+
+# --------------------------------------------------
+# CORS: Allow local development and deployed frontend
+# --------------------------------------------------
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+        "https://factorypulse-frontend-khaki.vercel.app",
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 
@@ -54,10 +72,12 @@ app.include_router(
     machine_health_router,
     prefix=settings.API_PREFIX,
 )
+
 app.include_router(
     fleet_router,
     prefix=settings.API_PREFIX,
 )
+
 
 # --------------------------------------------------
 # Root endpoint
